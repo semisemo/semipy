@@ -6,9 +6,9 @@ raw_data = '교육파일.xlsm'
 save_data = '강의확인서.xlsx'
 
 MONTH = 3
-EDU = "A"
+EDU = "꾸러기수사대"
 # 0. 데이터 통합시트 먼저 읽기
-wb = openpyxl.load_workbook(raw_data)
+wb = openpyxl.load_workbook(raw_data, read_only=True)
 lec_raw_sheet = wb['통합시트']
 
 first_row_number = 2
@@ -65,16 +65,15 @@ for row in lec_raw_sheet.iter_rows(min_row=first_row_number, max_row=last_row_nu
                 
             PROGRAM_DATA[lec_name][teacher].append(data) #data를 붙이면 1개만 나오구 ㅜㅜ
 
-wb.close()  #이거 들어갈 자리도 물어봐야지...
 
-print("-------------------- PROGRAM_DATA: 출 력 ---------------------------\n")
-pprint.pprint(PROGRAM_DATA, width=1, indent=5)
+# print("-------------------- PROGRAM_DATA: 출 력 ---------------------------\n")
+# pprint.pprint(PROGRAM_DATA, width=1, indent=5)
 
-#위에서 추출된 PROGRAM_DATA를 가지고 강사별로 강의확인서 인적사항 적기
+# #위에서 추출된 PROGRAM_DATA를 가지고 강사별로 강의확인서 인적사항 적기
 
 
 ws_personal = wb["인적사항"]
-PERSONAL_DICT = {}
+PERSONAL_DATA = {}
 
 for row in ws_personal.iter_rows(min_row=2):
 
@@ -83,18 +82,58 @@ for row in ws_personal.iter_rows(min_row=2):
     if not name:
         break
 
-    social_id = row[1].value # 생년월일
-    address = row[2].value # 주소
-    phone = row[3].value # 연락처
-    bank = row[4].value # 은행
-    banknum = row[5].value # 계좌번호
+    position = row[1].value # 소속직책
+    social_id = row[2].value # 생년월일
+    address = row[3].value # 주소
+    phone = row[4].value # 연락처
+    bank = row[5].value # 은행
+    banknum = row[6].value # 계좌번호
 
-    # print(name, social_id, address,phone, bank, banknum)
+    # print(name, position, social_id, address,phone, bank, banknum)
 
-    PERSONAL_DICT[name] = [social_id, address,phone, bank, banknum]
+    PERSONAL_DATA[name] = [position, social_id, address,phone, bank, banknum]
 
-    #직원같은경우는 목록에 안쓰는데 어떻게 할건지....
-    #데이터는 뽑앗는데,,,, 어떻게 매칭시켜서 써야할지를 모르겠음
+result = PROGRAM_DATA[EDU]
+wb.close()
+
+
+# EDU에 해당하는 강사의 인적사항만 가져오기
+
+wb2 = openpyxl.load_workbook(save_data, read_only=False)
+lec_sheet = wb2['강의확인서']
+
+
+for teacher_name, lec_detail in result.items():
+
+#인적사항기재하기
+
+    lec_sheet["c5"] = teacher_name #강사명
+    lec_sheet["c6"] = PERSONAL_DATA[teacher_name][0] #소속및직위
+    lec_sheet["c7"] = PERSONAL_DATA[teacher_name][1]  #생년월일
+    lec_sheet["c8"] = PERSONAL_DATA[teacher_name][2]  #주소
+    lec_sheet["c9"] = PERSONAL_DATA[teacher_name][3]  #연락처
+    lec_sheet["c10"] = PERSONAL_DATA[teacher_name][4]  #은행
+    lec_sheet["d10"] = PERSONAL_DATA[teacher_name][5] #계좌번호
+
+    for each in lec_detail:
+        lec_sheet.append(each) #오류는 안났는데 데이터가 엑셀에 없음 ㅜㅜ
+
+        wb2.save(save_data)
+
+#문제점1. 루프가 안돌아감. 덮어쓰기 되어버렸음. -> sheet별로 저장하고싶음
+#문제점2. lec_detail을 붙여야 하는데 안됨 ㅠㅠ
+    
+    
+
+
+
+
+
+    
+
+
+
+
 
 
 
