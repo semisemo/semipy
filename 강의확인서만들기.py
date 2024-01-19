@@ -1,6 +1,8 @@
 import pprint # dictionary 를 보기좋게 출력하려고 쓰는 라이브러리
 import openpyxl
 from datetime import datetime
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
 
 raw_data = '교육파일.xlsm'
 save_data = '강의확인서.xlsx'
@@ -114,20 +116,21 @@ for teacher_name, lec_detail in result.items():
     lec_sheet["c10"] = PERSONAL_DATA[teacher_name][4]  #은행
     lec_sheet["d10"] = PERSONAL_DATA[teacher_name][5] #계좌번호
 
-    index = 19
+
+    index = 16
+
+
     for lec_data in lec_detail:
-        lec_sheet["c5"] = teacher_name #강사명
+        # 각각의 강의 정보 기재하기
+        lec_sheet.cell(row=index, column=1, value=index - 15)  # A열에 순번 기재
+        lec_sheet.cell(row=index, column=2, value=lec_data[0])  # B열에 날짜 정보 기재
+        lec_sheet.cell(row=index, column=3, value=teacher_name)  # 강사명
+        lec_sheet.cell(row=index, column=4, value=lec_data[1])  # 날짜
 
-        index = index + 1
-
-    wb2.save("{}월{}.xlsx".format(teacher_name, EDU))
-#시트 추가 생성하는걸 자꾸 실패해서 일단 파일을 생성해버렸음
+        index += 1
     
-#문제점1. 루프가 안돌아감. 덮어쓰기 되어버렸음. -> sheet별로 저장하고싶음
-#문제점2. lec_detail을 붙여야 하는데 안됨 ㅠㅠ
-    
-    
-
+        wb2.save("{}{}.xlsx".format(EDU,teacher_name))  # 해당 부분을 수정하지 않도록 주석 처리
+ 
 
 
 
