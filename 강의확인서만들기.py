@@ -102,7 +102,6 @@ wb.close()
 wb2 = openpyxl.load_workbook(save_data, read_only=False)
 lec_sheet = wb2['강의확인서']
 
-
 for teacher_name, lec_detail in result.items():
 
 #인적사항기재하기
@@ -115,11 +114,15 @@ for teacher_name, lec_detail in result.items():
     lec_sheet["c10"] = PERSONAL_DATA[teacher_name][4]  #은행
     lec_sheet["d10"] = PERSONAL_DATA[teacher_name][5] #계좌번호
 
-    for each in lec_detail:
-        lec_sheet.append(each) #오류는 안났는데 데이터가 엑셀에 없음 ㅜㅜ
+    index = 19
+    for lec_data in lec_detail:
+        lec_sheet["c5"] = teacher_name #강사명
 
-        wb2.save(save_data)
+        index = index + 1
 
+    wb2.save("{}월{}.xlsx".format(teacher_name, EDU))
+#시트 추가 생성하는걸 자꾸 실패해서 일단 파일을 생성해버렸음
+    
 #문제점1. 루프가 안돌아감. 덮어쓰기 되어버렸음. -> sheet별로 저장하고싶음
 #문제점2. lec_detail을 붙여야 하는데 안됨 ㅠㅠ
     
