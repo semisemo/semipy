@@ -1,151 +1,319 @@
-import pprint # dictionary 를 보기좋게 출력하려고 쓰는 라이브러리
+import tkinter as tk
+from tkinter import *
+from tkinter import ttk
+from tkinter import filedialog
+from tkinter import messagebox
 import openpyxl
 from datetime import datetime
-from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import letter
-
-raw_data = '교육파일.xlsm'
-save_data = '강의확인서.xlsx'
-
-MONTH = 3
-EDU = "꾸러기수사대"
-# 0. 데이터 통합시트 먼저 읽기
-wb = openpyxl.load_workbook(raw_data, read_only=True)
-lec_raw_sheet = wb['통합시트']
-
-first_row_number = 2
-last_row_number = lec_raw_sheet.max_row
+from docx import Document
+from docx.shared import Pt
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.shared import Pt
+import os 
 
 
-"""
-MONTH 데이터만 추출될 거고
+def browse_file(entry):
+    file_path = filedialog.askopenfilename(filetypes=[("Excel 파일", "*.xlsm")])
+    if file_path:  # 사용자가 파일을 선택한 경우
+        entry.delete(0, tk.END)
+        entry.insert(0, file_path)
 
-{
-    'lec_name'{ 
-        강사A : [날짜, 시간, 신청기관, 반, 인원],
-                [날짜, 시간, 신청기관, 반, 인원]}
-        강사b : 
-}
+def browse_folder(entry):
+    folder_selected = filedialog.askdirectory()
+    if folder_selected:  # 사용자가 폴더를 선택한 경우
+        entry.delete(0, tk.END)
+        entry.insert(0, folder_selected)
 
+def show_message(message):
+    messagebox.showinfo("Message", message)
 
-"""
+def start_clicked():
+    # "시작" 버튼 클릭 시, 각 위젯에서 값을 읽어옴
+    global MONTH, YEAR, DAY, LECTURE_NAME, LECTURE_SHEETNAME, TOPIC, RAW_DATA, SAVE_FOLDER, TYPE
 
-PROGRAM_DATA = {}
-
-for row in lec_raw_sheet.iter_rows(min_row=first_row_number, max_row=last_row_number):
-    date = row[1].value
-
-    if date != None:
-        if date.month != MONTH:
-            continue
-
-        lec_name = row[0].value # 강의명
-        date = row[1].value.strftime("%Y-%m-%d")  #날짜
-        timetable = row[3].value # 시간
-        applicant = row[4].value # 신청기관
-        division = row[5].value # 반
-        amount = row[6].value # 인원
-        teacher1 = row[8].value # 강사1
-        teacher2 = row[9].value # 강사2
-
-        data = [date, timetable, applicant, division] #월별 데이터 나오는것까지는 성공
+    MONTH = int(month_combobox.get())
+    YEAR = year_spinbox.get()
+    DAY = day_combobox.get()
+    LECTURE_NAME = lecture_name_entry.get()
+    LECTURE_SHEETNAME = lecture_sheetname_entry.get()
+    TOPIC = topic_entry.get()
+    RAW_DATA = raw_data_entry.get()
+    SAVE_FOLDER = save_folder_entry.get()
+    TYPE = type_combobox.get()
 
 
+    if not all([MONTH, YEAR, DAY, LECTURE_NAME, LECTURE_SHEETNAME, TOPIC, RAW_DATA, SAVE_FOLDER, TYPE]):
+        show_message("입력값을 확인하세요.")
+        return 
+    # 주어진 코드 실행
+    generate_confirmation_doc()
 
-        if not lec_name in PROGRAM_DATA:
-            PROGRAM_DATA[lec_name] = {}  
-
-        
-        for teacher in (teacher1, teacher2):
-            if teacher is None:  
-                continue
-            if teacher is str('-'):
-                continue
-          
-            if not teacher in PROGRAM_DATA[lec_name]:
-                PROGRAM_DATA[lec_name][teacher] = []
-                
-            PROGRAM_DATA[lec_name][teacher].append(data) #data를 붙이면 1개만 나오구 ㅜㅜ
-
-
-# print("-------------------- PROGRAM_DATA: 출 력 ---------------------------\n")
-# pprint.pprint(PROGRAM_DATA, width=1, indent=5)
-
-# #위에서 추출된 PROGRAM_DATA를 가지고 강사별로 강의확인서 인적사항 적기
-
-
-ws_personal = wb["인적사항"]
-PERSONAL_DATA = {}
-
-for row in ws_personal.iter_rows(min_row=2):
-
-    name = row[0].value # 첫 칸 값
-
-    if not name:
-        break
-
-    position = row[1].value # 소속직책
-    social_id = row[2].value # 생년월일
-    address = row[3].value # 주소
-    phone = row[4].value # 연락처
-    bank = row[5].value # 은행
-    banknum = row[6].value # 계좌번호
-
-    # print(name, position, social_id, address,phone, bank, banknum)
-
-    PERSONAL_DATA[name] = [position, social_id, address,phone, bank, banknum]
-
-result = PROGRAM_DATA[EDU]
-wb.close()
-
-
-# EDU에 해당하는 강사의 인적사항만 가져오기
-
-wb2 = openpyxl.load_workbook(save_data, read_only=False)
-lec_sheet = wb2['강의확인서']
-
-for teacher_name, lec_detail in result.items():
-
-#인적사항기재하기
-
-    lec_sheet["c5"] = teacher_name #강사명
-    lec_sheet["c6"] = PERSONAL_DATA[teacher_name][0] #소속및직위
-    lec_sheet["c7"] = PERSONAL_DATA[teacher_name][1]  #생년월일
-    lec_sheet["c8"] = PERSONAL_DATA[teacher_name][2]  #주소
-    lec_sheet["c9"] = PERSONAL_DATA[teacher_name][3]  #연락처
-    lec_sheet["c10"] = PERSONAL_DATA[teacher_name][4]  #은행
-    lec_sheet["d10"] = PERSONAL_DATA[teacher_name][5] #계좌번호
-
-
-    index = 16
-
-
-    for lec_data in lec_detail:
-        # 각각의 강의 정보 기재하기
-        lec_sheet.cell(row=index, column=1, value=index - 15)  # A열에 순번 기재
-        lec_sheet.cell(row=index, column=2, value=lec_data[0])  # B열에 날짜 정보 기재
-        lec_sheet.cell(row=index, column=3, value=teacher_name)  # 강사명
-        lec_sheet.cell(row=index, column=4, value=lec_data[1])  # 날짜
-
-        index += 1
-    
-        wb2.save("{}{}.xlsx".format(EDU,teacher_name))  # 해당 부분을 수정하지 않도록 주석 처리
  
+def generate_confirmation_doc():
+
+
+    # 이 부분에 문서 생성 코드 추가
+    print(f'YEAR: {YEAR}, MONTH: {MONTH}, DAY: {DAY} {RAW_DATA}, {SAVE_FOLDER}')
+    print(f'LECTURE_NAME: {LECTURE_NAME}, LECTURE_SHEETNAME: {LECTURE_SHEETNAME}, TOPIC: {TOPIC}')
+
+    save_file = f'{MONTH}월_{LECTURE_SHEETNAME}'
+    if TYPE == "해 설 사":
+        save_file += '해설확인서.docx'
+        title_text = '해  설  확  인  서'
+    elif TYPE == "강  사":
+        save_file += '강의확인서.docx'
+        title_text = '강  의  확  인  서'
+    else:
+        show_message("잘못된 TYPE 값입니다.")
+        return
+
+    save_data = os.path.join(SAVE_FOLDER, save_file)
+
+    wb = openpyxl.load_workbook(RAW_DATA, read_only=True)
+    lec_raw_sheet = wb['통합시트']
+
+    first_row_number = 2
+    last_row_number = lec_raw_sheet.max_row
+
+    PROGRAM_DATA = {}
+
+    for row in lec_raw_sheet.iter_rows(min_row=first_row_number, max_row=last_row_number):
+        date = row[1].value
+
+        if date is not None:
+            if date.month != MONTH:
+                continue
+
+            lec_name = row[0].value
+
+            date = row[1].value.strftime("%Y-%m-%d")
+            dayofweek = row[2].value
+            timetable = row[3].value  # 시작시각:시작분 ~ 종료시각:종료분
+            applicant = row[4].value
+            division = row[5].value
+            teacher1 = row[8].value
+            teacher2 = row[9].value
+
+            # 시작시각과 종료시각을 추출하여 각각의 시간 데이터로 변환
+            start_time_str, end_time_str = timetable.split("~")
+            start_time = datetime.strptime(start_time_str.strip(), "%H:%M")
+            end_time = datetime.strptime(end_time_str.strip(), "%H:%M")
+
+            # 데이터에 추가
+            data = [date, dayofweek, start_time, end_time, applicant, division]
+
+
+            if not lec_name in PROGRAM_DATA:
+                PROGRAM_DATA[lec_name] = {}
+
+            for teacher in (teacher1, teacher2):
+                if teacher is None:
+                    continue
+                if teacher == '-':
+                    continue
+
+                if not teacher in PROGRAM_DATA[lec_name]:
+                    PROGRAM_DATA[lec_name][teacher] = []
+
+                PROGRAM_DATA[lec_name][teacher].append(data)
 
 
 
 
+
+    ws_personal = wb["인적사항"]
+    PERSONAL_DATA = {}
+
+    for row in ws_personal.iter_rows(min_row=2):
+        name = row[0].value
+
+        if not name:
+            break
+
+        position = row[1].value
+        social_id = row[2].value
+        address = row[3].value
+        phone = row[4].value
+        bank = row[5].value
+        banknum = row[6].value
+
+        PERSONAL_DATA[name] = [position, social_id, address, phone, bank, banknum]
+
+    wb.close()
+
+    doc = Document()
+
+    first_teacher = True
+
+    for teacher_name, teacher_data in PROGRAM_DATA[LECTURE_SHEETNAME].items():
+        if teacher_name not in PERSONAL_DATA:
+            # 해당 강사의 인적사항이 없을 때 메시지 박스를 띄우고 GUI를 닫음
+            messagebox.showwarning("경고", f"해당 강사({teacher_name})의 인적사항이 없습니다.")
+            if root.winfo_exists():
+                root.destroy()  # GUI 닫기
+            return  # Exit the function
+
+
+        if first_teacher:
+            first_teacher = False
+        else:
+            doc.add_page_break()
     
 
+        # "강 의 확 인 서"를 중앙 정렬하고 글씨 크기를 15로 변경
+        title_paragraph = doc.add_paragraph(title_text)
+        title_paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        run = title_paragraph.runs[0]
+        run.font.size = Pt(15)
+        run.font.name = '나눔고딕'
+
+        doc.add_paragraph(f'1. 사 업 명: {LECTURE_NAME}')
+        doc.add_paragraph('2. 강의일시 및 대상')
+
+        # 시작시각을 기준으로 정렬
+        sorted_teacher_data = sorted(
+            teacher_data,
+            key=lambda x: (x[0], x[2])
+        )
+
+        # 표 스타일 적용
+
+        table = doc.add_table(rows=1, cols=4)
+        table.style = doc.styles['Table Grid']
+        table.autofit = False
+
+        for col_num, header_text in enumerate(['날짜(요일)', '강의시간', '신청기관', '반']):
+            cell = table.cell(0, col_num)
+            cell.text = header_text
+            cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+        for i, data in enumerate(sorted_teacher_data, start=1):
+            row_cells = table.add_row().cells
+            row_cells[0].text = f'{data[0]}({data[1]})'
+            row_cells[1].text = f'{data[2].strftime("%H:%M")} ~ {data[3].strftime("%H:%M")}'
+            row_cells[2].text = data[4]
+            row_cells[3].text = data[5]
+        
+        for row in table.rows:
+            for cell in row.cells:
+                for paragraph in cell.paragraphs:
+                    for run in paragraph.runs:
+                        run.font.size = Pt(10)
+                        run.font.name = '나눔고딕'
+        
+        doc.add_paragraph().alignment = WD_ALIGN_PARAGRAPH.CENTER  # 빈 줄 추가
+
+
+        doc.add_paragraph(f'3. 강의주제 : {TOPIC}')
+        doc.add_paragraph(f'4. 강    사 : {teacher_name}')    
+        doc.add_paragraph(f'    ○ 소속및직위 : {PERSONAL_DATA[teacher_name][0]}')
+        doc.add_paragraph(f'    ○ 생년월일 : {PERSONAL_DATA[teacher_name][1]}')
+        doc.add_paragraph(f'    ○ 주    소 : {PERSONAL_DATA[teacher_name][2]}')
+        doc.add_paragraph(f'    ○ 연 락 처 : {PERSONAL_DATA[teacher_name][3]}')
+        doc.add_paragraph(f'    ○ 계좌번호 : {PERSONAL_DATA[teacher_name][4]} {PERSONAL_DATA[teacher_name][5]}')
+
+        doc.add_paragraph().alignment = WD_ALIGN_PARAGRAPH.CENTER  # 빈 줄 추가
+        doc.add_paragraph(f'{YEAR}. {MONTH}. {DAY}. ').alignment = WD_ALIGN_PARAGRAPH.CENTER
+        doc.add_paragraph().alignment = WD_ALIGN_PARAGRAPH.CENTER  # 빈 줄 추가
+
+        blank_name = '  '.join(teacher_name)
+        doc.add_paragraph(f'{TYPE}    {blank_name}   (서 명)').alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+
+        # 표 스타일 적용
+        for row in table.rows:
+            for cell in row.cells:
+                for paragraph in cell.paragraphs:
+                    for run in paragraph.runs:
+                        run.font.size = Pt(10)
+                        paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+    # 문서 저장
+    doc.save(save_data)
+
+    try:
+        # Save the document
+        doc.save(save_data)
+        messagebox.showinfo("알림", "강의확인서가 성공적으로 생성되었습니다.")
+        return True  # Document saved successfully
+    except Exception as e:
+        # If an exception occurs during document saving, show a warning
+        messagebox.showwarning("경고", f"강의확인서 저장 중 오류가 발생했습니다: {str(e)}")
+        return False  # Document not saved successfully
 
 
 
+# GUI 생성
+root = tk.Tk()
+root.title("강의확인서 출력")
+
+# 각각의 값 입력 위젯 생성
+# 연도는 스핀 박스로 변경, 기본값은 2023
+
+type_frame = LabelFrame(root, text="해설/강의")
+type_label = ttk.Label(type_frame, text="타입:")
+type_combobox = ttk.Combobox(type_frame, values=["강  사", "해 설 사"], width=10)
+
+year_frame = LabelFrame(root, text="날짜지정")
+year_label = ttk.Label(year_frame, text="연도:", width=5)
+year_spinbox = ttk.Spinbox(year_frame, from_=2023, to=2050, width=10)
+
+month_label = ttk.Label(year_frame, text="교육월:", width=5)
+month_combobox = ttk.Combobox(year_frame, values=[f'{i}' for i in range(1, 13)], width=5)
+
+day_label = ttk.Label(year_frame, text="발행일:", width=5)
+day_combobox = ttk.Combobox(year_frame, values=[str(i) for i in range(1, 32)], width=5)
+
+lecture_name_label = ttk.Label(root, text="강의확인서 사업명(예:섬강따라물빛여행):")
+lecture_name_entry = ttk.Entry(root, width=35)
+
+lecture_sheetname_label = ttk.Label(root, text="엑셀 강의명(예: 섬강):")
+lecture_sheetname_entry = ttk.Entry(root, width=35)
+
+topic_label = ttk.Label(root, text="강의주제(물절약):")
+topic_entry = ttk.Entry(root, width=35)
+
+raw_data_entry = ttk.Entry(root, width=35)
+raw_data_button = ttk.Button(root, text="교육파일열기", width=15, command=lambda: browse_file(raw_data_entry))
+
+save_folder_entry = ttk.Entry(root,width=35)
+save_folder_button = ttk.Button(root, text="저장경로설정", width=15, command=lambda: browse_folder(save_folder_entry))
+
+# "시작" 버튼 생성
+start_button = ttk.Button(root, text="시작", command=start_clicked)
+
+# 각 위젯 배치;
+type_frame.grid(column=0, row=0, sticky=tk.W, padx=1, pady=1)
+type_label.grid(column=0, row=0, sticky=tk.W, padx=5, pady=5)
+type_combobox.grid(column=1, row=0, padx=5, pady=5)
 
 
+#year_frame에 비치
+year_frame.grid(column=0, row=1, sticky= tk.W, padx=1, pady=1)
+year_label.grid(column=0, row=1, sticky= tk.W, padx=5, pady=5)
+year_spinbox.grid(column=1, row=1, padx=5, pady=5)
 
+month_label.grid(column=0, row=2, sticky= tk.W, padx=5, pady=5)
+month_combobox.grid(column=1, row=2, padx=5, pady=5)
 
-            
+day_label.grid(column=0, row=3, sticky= tk.W, padx=5, pady=5)
+day_combobox.grid(column=1, row=3, padx=5, pady=5)
 
+lecture_name_label.grid(column=0, row=6, sticky=tk.W, padx=5, pady=5)
+lecture_name_entry.grid(column=1, row=6, padx=5, pady=5)
 
-    
+lecture_sheetname_label.grid(column=0, row=7, sticky=tk.W, padx=5, pady=5)
+lecture_sheetname_entry.grid(column=1, row=7, padx=5, pady=5)
 
+topic_label.grid(column=0, row=8, sticky=tk.W, padx=5, pady=5)
+topic_entry.grid(column=1, row=8, padx=5, pady=5)
+
+raw_data_entry.grid(column=1, row=4,  padx=1, pady=1)
+raw_data_button.grid(column=0, row=4,  padx=5, pady=5, sticky=tk.W)
+
+save_folder_entry.grid(column=1, row=5, padx=3, pady=5)
+save_folder_button.grid(column=0, row=5, padx=5, pady=5,sticky=tk.W)
+
+start_button.grid(column=0, row=9, columnspan=2, pady=10)
+
+root.mainloop()
