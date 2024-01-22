@@ -9,6 +9,7 @@ from docx import Document
 from docx.shared import Pt
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Pt
+from docx.oxml.ns import qn
 import os 
 
 
@@ -19,7 +20,7 @@ def browse_file(entry):
         entry.insert(0, file_path)
 
 def browse_folder(entry):
-    folder_selected = filedialog.askdirectory()
+    folder_selected = filedialog.askdirectory(initialdir="C:/")
     if folder_selected:  # 사용자가 폴더를 선택한 경우
         entry.delete(0, tk.END)
         entry.insert(0, folder_selected)
@@ -94,10 +95,21 @@ def generate_confirmation_doc():
             teacher1 = row[8].value
             teacher2 = row[9].value
 
+            # timetable이 예상대로 구성되어 있는지 확인
+            if "~" not in timetable:
+                messagebox.showwarning("경고", f"{date}의 시간에 ~가 없습니다.{timetable}")
+                if root.winfo_exists():
+                    root.destroy()  # GUI 닫기
+                return  # Exit the function
+
+
+
             # 시작시각과 종료시각을 추출하여 각각의 시간 데이터로 변환
             start_time_str, end_time_str = timetable.split("~")
             start_time = datetime.strptime(start_time_str.strip(), "%H:%M")
             end_time = datetime.strptime(end_time_str.strip(), "%H:%M")
+
+
 
             # 데이터에 추가
             data = [date, dayofweek, start_time, end_time, applicant, division]
@@ -142,6 +154,9 @@ def generate_confirmation_doc():
     wb.close()
 
     doc = Document()
+    style = doc.styles['Normal']
+    style.font.name = '나눔고딕'
+    style._element.rPr.rFonts.set(qn('w:eastAsia'), '나눔고딕')
 
     first_teacher = True
 
@@ -166,7 +181,9 @@ def generate_confirmation_doc():
         run = title_paragraph.runs[0]
         run.font.size = Pt(15)
         run.font.name = '나눔고딕'
+        run._element.rPr.rFonts.set(qn('w:eastAsia'), '나눔고딕')
 
+   
         doc.add_paragraph(f'1. 사 업 명: {LECTURE_NAME}')
         doc.add_paragraph('2. 강의일시 및 대상')
 
@@ -200,10 +217,13 @@ def generate_confirmation_doc():
                     for run in paragraph.runs:
                         run.font.size = Pt(10)
                         run.font.name = '나눔고딕'
+                        run._element.rPr.rFonts.set(qn('w:eastAsia'), '나눔고딕') 
+
         
         doc.add_paragraph().alignment = WD_ALIGN_PARAGRAPH.CENTER  # 빈 줄 추가
 
 
+    
         doc.add_paragraph(f'3. 강의주제 : {TOPIC}')
         doc.add_paragraph(f'4. 강    사 : {teacher_name}')    
         doc.add_paragraph(f'    ○ 소속및직위 : {PERSONAL_DATA[teacher_name][0]}')
@@ -226,7 +246,11 @@ def generate_confirmation_doc():
                 for paragraph in cell.paragraphs:
                     for run in paragraph.runs:
                         run.font.size = Pt(10)
+                        run._element.rPr.rFonts.set(qn('w:eastAsia'), '나눔고딕') 
                         paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                        
+
+
 
     # 문서 저장
     doc.save(save_data)
