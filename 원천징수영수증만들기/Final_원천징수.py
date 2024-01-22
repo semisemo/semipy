@@ -79,12 +79,21 @@ def start_tax_data():
         tax1 = row[6].value
         tax2 = row[7].value
 
+        need = 0 if need is None or need in ["", "-"] else int(need)
+        income = 0 if income is None or income in ["", "-"] else int(income)
+        tax1 = 0 if tax1 is None or tax1 in ["", "-"] else int(tax1)
+        tax2 = 0 if tax2 is None or tax2 in ["", "-"] else int(tax2)
+
         if tax1 is None : 
             continue
         taxtotal = int(tax1) + int(tax2)
 
 
         data = [program, total, need, income, tax1, tax2, taxtotal]
+
+
+
+
 
         if not PAYMENT_DATA.get(month):
             PAYMENT_DATA[month] = {}
