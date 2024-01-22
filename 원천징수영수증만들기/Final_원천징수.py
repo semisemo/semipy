@@ -9,7 +9,7 @@ import os
 
 
 root = Tk()
-root.title("물빛누리 원천징수 GUI")
+root.title("원천징수영수증발행 GUI")
 root.geometry("640x250")
 root.resizable(False, False) #최대화가능, 창 크기 값 변경 불가
 
