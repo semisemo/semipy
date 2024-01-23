@@ -47,12 +47,11 @@ def start_clicked():
         show_message("입력값을 확인하세요.")
         return 
     # 주어진 코드 실행
+
     generate_confirmation_doc()
 
  
 def generate_confirmation_doc():
-
-
     # 이 부분에 문서 생성 코드 추가
     print(f'YEAR: {YEAR}, MONTH: {MONTH}, DAY: {DAY} {RAW_DATA}, {SAVE_FOLDER}')
     print(f'LECTURE_NAME: {LECTURE_NAME}, LECTURE_SHEETNAME: {LECTURE_SHEETNAME}, TOPIC: {TOPIC}')
@@ -65,7 +64,7 @@ def generate_confirmation_doc():
         save_file += '강의확인서.docx'
         title_text = '강  의  확  인  서'
     else:
-        show_message("잘못된 TYPE 값입니다.")
+        show_message("잘못된 TYPE 값입니다. 해설과 강의 중에 선택해주세요")
         return
 
     save_data = os.path.join(SAVE_FOLDER, save_file)
@@ -130,9 +129,6 @@ def generate_confirmation_doc():
                 PROGRAM_DATA[lec_name][teacher].append(data)
 
 
-
-
-
     ws_personal = wb["인적사항"]
     PERSONAL_DATA = {}
 
@@ -152,6 +148,8 @@ def generate_confirmation_doc():
         PERSONAL_DATA[name] = [position, social_id, address, phone, bank, banknum]
 
     wb.close()
+
+    
 
     doc = Document()
     style = doc.styles['Normal']
@@ -179,11 +177,13 @@ def generate_confirmation_doc():
         title_paragraph = doc.add_paragraph(title_text)
         title_paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
         run = title_paragraph.runs[0]
-        run.font.size = Pt(15)
+        run.font.size = Pt(20)
         run.font.name = '나눔고딕'
         run._element.rPr.rFonts.set(qn('w:eastAsia'), '나눔고딕')
+        
 
    
+        doc.add_paragraph().alignment = WD_ALIGN_PARAGRAPH.CENTER  # 빈 줄 추가
         doc.add_paragraph(f'1. 사 업 명: {LECTURE_NAME}')
         doc.add_paragraph('2. 강의일시 및 대상')
 
@@ -195,21 +195,35 @@ def generate_confirmation_doc():
 
         # 표 스타일 적용
 
-        table = doc.add_table(rows=1, cols=4)
+        table = doc.add_table(rows=1, cols=5)
         table.style = doc.styles['Table Grid']
         table.autofit = False
 
+        # 첫 번째 열에 대한 헤더 추가
+        cell = table.cell(0, 0)
+        cell.text = "순번"
+        cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+
         for col_num, header_text in enumerate(['날짜(요일)', '강의시간', '신청기관', '반']):
-            cell = table.cell(0, col_num)
+            cell = table.cell(0, col_num + 1)
             cell.text = header_text
             cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        
+            # 순차 번호를 초기화
+            sequence_number = 1
 
         for i, data in enumerate(sorted_teacher_data, start=1):
             row_cells = table.add_row().cells
-            row_cells[0].text = f'{data[0]}({data[1]})'
-            row_cells[1].text = f'{data[2].strftime("%H:%M")} ~ {data[3].strftime("%H:%M")}'
-            row_cells[2].text = data[4]
-            row_cells[3].text = data[5]
+
+            # 첫 번째 열(순번)에 값을 설정
+            row_cells[0].text = str(sequence_number)
+            sequence_number += 1
+
+            # 다른 열에 값을 설정
+            row_cells[1].text = f'{data[0]}({data[1]})'
+            row_cells[2].text = f'{data[2].strftime("%H:%M")} ~ {data[3].strftime("%H:%M")}'
+            row_cells[3].text = data[4]
+            row_cells[4].text = data[5]
         
         for row in table.rows:
             for cell in row.cells:
@@ -247,11 +261,7 @@ def generate_confirmation_doc():
                     for run in paragraph.runs:
                         run.font.size = Pt(10)
                         run._element.rPr.rFonts.set(qn('w:eastAsia'), '나눔고딕') 
-                        paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                        
-
-
-
+                        paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER                  
     # 문서 저장
     doc.save(save_data)
 
