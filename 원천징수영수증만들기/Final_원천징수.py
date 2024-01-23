@@ -9,7 +9,7 @@ import os
 
 
 root = Tk()
-root.title("원천징수영수증발행 GUI")
+root.title("물빛누리 원천징수 GUI")
 root.geometry("640x250")
 root.resizable(False, False) #최대화가능, 창 크기 값 변경 불가
 
@@ -92,9 +92,6 @@ def start_tax_data():
         data = [program, total, need, income, tax1, tax2, taxtotal]
 
 
-
-
-
         if not PAYMENT_DATA.get(month):
             PAYMENT_DATA[month] = {}
 
@@ -119,8 +116,15 @@ def start_tax_data():
 
             # lecturer_payment -> [[], [], [], []]
             for data in lecturer_payment:
-                print(index)
-                print(name)
+
+                                # 해당 강사의 인적사항이 없을 때 메시지 박스를 띄우고 GUI를 닫음
+                if name not in PERSONAL_DICT:
+                    messagebox.showwarning("경고", f"강사 {name}의 인적사항을 확인해주세요.")
+                    if root.winfo_exists():
+                        root.destroy()  # GUI 닫기
+                        return  # Exit the function
+                
+
 
                 ws_reciept["D3"] = YEAR
                 ws_reciept["H8"] = name
