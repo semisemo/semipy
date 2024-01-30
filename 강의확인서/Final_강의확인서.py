@@ -6,7 +6,7 @@ from tkinter import messagebox
 import openpyxl
 from datetime import datetime
 from docx import Document
-from docx.shared import Pt
+from docx.shared import Pt, Cm
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Pt
 from docx.oxml.ns import qn
@@ -20,7 +20,7 @@ def browse_file(entry):
         entry.insert(0, file_path)
 
 def browse_folder(entry):
-    folder_selected = filedialog.askdirectory(initialdir="C:/")
+    folder_selected = filedialog.askdirectory()
     if folder_selected:  # 사용자가 폴더를 선택한 경우
         entry.delete(0, tk.END)
         entry.insert(0, folder_selected)
@@ -96,7 +96,7 @@ def generate_confirmation_doc():
 
             # timetable이 예상대로 구성되어 있는지 확인
             if "~" not in timetable:
-                messagebox.showwarning("경고", f"{date}의 시간에 ~가 없습니다.{timetable}")
+                messagebox.showwarning("경고", f"시간{date}에 ~가 없습니다.{timetable}")
                 if root.winfo_exists():
                     root.destroy()  # GUI 닫기
                 return  # Exit the function
@@ -149,120 +149,247 @@ def generate_confirmation_doc():
 
     wb.close()
 
-    
 
-    doc = Document()
-    style = doc.styles['Normal']
-    style.font.name = '나눔고딕'
-    style._element.rPr.rFonts.set(qn('w:eastAsia'), '나눔고딕')
+    if TYPE == "강  사":
+        if LECTURE_SHEETNAME not in PROGRAM_DATA:
+            messagebox.showwarning("경고", f"엑셀 강의명을 다시 확인하세요")
+            return
+          
+        doc = Document()
+        style = doc.styles['Normal']
+        style.font.name = '나눔고딕'
+        style._element.rPr.rFonts.set(qn('w:eastAsia'), '나눔고딕')
 
-    first_teacher = True
+        first_teacher = True
 
-    for teacher_name, teacher_data in PROGRAM_DATA[LECTURE_SHEETNAME].items():
-        if teacher_name not in PERSONAL_DATA:
-            # 해당 강사의 인적사항이 없을 때 메시지 박스를 띄우고 GUI를 닫음
-            messagebox.showwarning("경고", f"해당 강사({teacher_name})의 인적사항이 없습니다.")
-            if root.winfo_exists():
-                root.destroy()  # GUI 닫기
-            return  # Exit the function
+        for teacher_name, teacher_data in PROGRAM_DATA[LECTURE_SHEETNAME].items():
+            if teacher_name not in PERSONAL_DATA:
+                # 해당 강사의 인적사항이 없을 때 메시지 박스를 띄우고 GUI를 닫음
+                messagebox.showwarning("경고", f"해당 강사({teacher_name})의 인적사항이 없습니다.")
+                if root.winfo_exists():
+                    root.destroy()  # GUI 닫기
+                return  # Exit the function
 
 
-        if first_teacher:
-            first_teacher = False
-        else:
-            doc.add_page_break()
-    
+            if first_teacher:
+                first_teacher = False
+            else:
+                doc.add_page_break()
 
-        # "강 의 확 인 서"를 중앙 정렬하고 글씨 크기를 15로 변경
-        title_paragraph = doc.add_paragraph(title_text)
-        title_paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        run = title_paragraph.runs[0]
-        run.font.size = Pt(20)
-        run.font.name = '나눔고딕'
-        run._element.rPr.rFonts.set(qn('w:eastAsia'), '나눔고딕')
-        
 
-   
-        doc.add_paragraph().alignment = WD_ALIGN_PARAGRAPH.CENTER  # 빈 줄 추가
-        doc.add_paragraph(f'1. 사 업 명: {LECTURE_NAME}')
-        doc.add_paragraph('2. 강의일시 및 대상')
+            # "강 의 확 인 서"를 중앙 정렬하고 글씨 크기를 15로 변경
+            title_paragraph = doc.add_paragraph(title_text)
+            title_paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            run = title_paragraph.runs[0]
+            run.font.size = Pt(20)
+            run.font.name = '나눔고딕'
+            run._element.rPr.rFonts.set(qn('w:eastAsia'), '나눔고딕')
+            
 
-        # 시작시각을 기준으로 정렬
-        sorted_teacher_data = sorted(
-            teacher_data,
-            key=lambda x: (x[0], x[2])
-        )
 
-        # 표 스타일 적용
+            doc.add_paragraph().alignment = WD_ALIGN_PARAGRAPH.CENTER  # 빈 줄 추가
+            doc.add_paragraph(f'1. 사 업 명: {LECTURE_NAME}')
+            doc.add_paragraph('2. 강의일시 및 대상')
 
-        table = doc.add_table(rows=1, cols=5)
-        table.style = doc.styles['Table Grid']
-        table.autofit = False
+            # 시작시각을 기준으로 정렬
+            sorted_teacher_data = sorted(
+                teacher_data,
+                key=lambda x: (x[0], x[2])
+            )
 
-        # 첫 번째 열에 대한 헤더 추가
-        cell = table.cell(0, 0)
-        cell.text = "순번"
-        cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            # 표 스타일 적용
 
-        for col_num, header_text in enumerate(['날짜(요일)', '강의시간', '신청기관', '반']):
-            cell = table.cell(0, col_num + 1)
-            cell.text = header_text
+            table = doc.add_table(rows=1, cols=5)
+            table.style = doc.styles['Table Grid']
+            table.autofit = False
+            
+            # 첫 번째 열에 대한 헤더 추가
+            cell = table.cell(0, 0)
+            cell.text = "순번"
             cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-        
+
+            for col_num, header_text in enumerate(['날짜(요일)', '강의시간', '신청기관', '반']):
+                cell = table.cell(0, col_num + 1)
+                cell.text = header_text
+                cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            
             # 순차 번호를 초기화
             sequence_number = 1
 
-        for i, data in enumerate(sorted_teacher_data, start=1):
-            row_cells = table.add_row().cells
+            for i, data in enumerate(sorted_teacher_data, start=1):
+                row_cells = table.add_row().cells
 
-            # 첫 번째 열(순번)에 값을 설정
-            row_cells[0].text = str(sequence_number)
-            sequence_number += 1
+                # 첫 번째 열(순번)에 값을 설정
+                row_cells[0].text = str(sequence_number)
+                sequence_number += 1
 
-            # 다른 열에 값을 설정
-            row_cells[1].text = f'{data[0]}({data[1]})'
-            row_cells[2].text = f'{data[2].strftime("%H:%M")} ~ {data[3].strftime("%H:%M")}'
-            row_cells[3].text = data[4]
-            row_cells[4].text = data[5]
+                # 다른 열에 값을 설정
+                row_cells[1].text = f'{data[0]}({data[1]})'
+                row_cells[2].text = f'{data[2].strftime("%H:%M")} ~ {data[3].strftime("%H:%M")}'
+                row_cells[3].text = data[4]
+                row_cells[4].text = data[5]
+            
+            for row in table.rows:
+                for cell in row.cells:
+                    for paragraph in cell.paragraphs:
+                        for run in paragraph.runs:
+                            run.font.size = Pt(10)
+                            run.font.name = '나눔고딕'
+                            run._element.rPr.rFonts.set(qn('w:eastAsia'), '나눔고딕') 
+
+            
+            doc.add_paragraph().alignment = WD_ALIGN_PARAGRAPH.CENTER  # 빈 줄 추가
+
+
+
+            doc.add_paragraph(f'3. 강의주제 : {TOPIC}')
+            doc.add_paragraph(f'4. 강    사 : {teacher_name}')    
+            doc.add_paragraph(f'    ○ 소속및직위 : {PERSONAL_DATA[teacher_name][0]}')
+            doc.add_paragraph(f'    ○ 생년월일 : {PERSONAL_DATA[teacher_name][1]}')
+            doc.add_paragraph(f'    ○ 주    소 : {PERSONAL_DATA[teacher_name][2]}')
+            doc.add_paragraph(f'    ○ 연 락 처 : {PERSONAL_DATA[teacher_name][3]}')
+            doc.add_paragraph(f'    ○ 계좌번호 : {PERSONAL_DATA[teacher_name][4]} {PERSONAL_DATA[teacher_name][5]}')
+
+            doc.add_paragraph().alignment = WD_ALIGN_PARAGRAPH.CENTER  # 빈 줄 추가
+            doc.add_paragraph(f'{YEAR}. {MONTH}. {DAY}. ').alignment = WD_ALIGN_PARAGRAPH.CENTER
+            doc.add_paragraph().alignment = WD_ALIGN_PARAGRAPH.CENTER  # 빈 줄 추가
+
+            blank_name = '  '.join(teacher_name)
+            doc.add_paragraph(f'{TYPE}    {blank_name}   (서 명)').alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+            # 표 스타일 적용
+            for row in table.rows:
+                for cell in row.cells:
+                    for paragraph in cell.paragraphs:
+                        for run in paragraph.runs:
+                            run.font.size = Pt(10)
+                            run._element.rPr.rFonts.set(qn('w:eastAsia'), '나눔고딕') 
+                            paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+     
+
+    else:
+        if LECTURE_SHEETNAME not in PROGRAM_DATA:
+            messagebox.showwarning("경고", f"엑셀 강의명을 다시 확인하세요")
+            return
         
-        for row in table.rows:
-            for cell in row.cells:
-                for paragraph in cell.paragraphs:
-                    for run in paragraph.runs:
-                        run.font.size = Pt(10)
-                        run.font.name = '나눔고딕'
-                        run._element.rPr.rFonts.set(qn('w:eastAsia'), '나눔고딕') 
+        doc = Document()
+        style = doc.styles['Normal']
+        style.font.name = '나눔고딕'
+        style._element.rPr.rFonts.set(qn('w:eastAsia'), '나눔고딕')
 
-        
-        doc.add_paragraph().alignment = WD_ALIGN_PARAGRAPH.CENTER  # 빈 줄 추가
+        first_teacher = True
+
+        for teacher_name, teacher_data in PROGRAM_DATA[LECTURE_SHEETNAME].items():
+            if teacher_name not in PERSONAL_DATA:
+                # 해당 강사의 인적사항이 없을 때 메시지 박스를 띄우고 GUI를 닫음
+                messagebox.showwarning("경고", f"해당 강사({teacher_name})의 인적사항이 없습니다.")
+                if root.winfo_exists():
+                    root.destroy()  # GUI 닫기
+                return  # Exit the function
 
 
-    
-        doc.add_paragraph(f'3. 강의주제 : {TOPIC}')
-        doc.add_paragraph(f'4. 강    사 : {teacher_name}')    
-        doc.add_paragraph(f'    ○ 소속및직위 : {PERSONAL_DATA[teacher_name][0]}')
-        doc.add_paragraph(f'    ○ 생년월일 : {PERSONAL_DATA[teacher_name][1]}')
-        doc.add_paragraph(f'    ○ 주    소 : {PERSONAL_DATA[teacher_name][2]}')
-        doc.add_paragraph(f'    ○ 연 락 처 : {PERSONAL_DATA[teacher_name][3]}')
-        doc.add_paragraph(f'    ○ 계좌번호 : {PERSONAL_DATA[teacher_name][4]} {PERSONAL_DATA[teacher_name][5]}')
+            if first_teacher:
+                first_teacher = False
+            else:
+                doc.add_page_break()
 
-        doc.add_paragraph().alignment = WD_ALIGN_PARAGRAPH.CENTER  # 빈 줄 추가
-        doc.add_paragraph(f'{YEAR}. {MONTH}. {DAY}. ').alignment = WD_ALIGN_PARAGRAPH.CENTER
-        doc.add_paragraph().alignment = WD_ALIGN_PARAGRAPH.CENTER  # 빈 줄 추가
 
-        blank_name = '  '.join(teacher_name)
-        doc.add_paragraph(f'{TYPE}    {blank_name}   (서 명)').alignment = WD_ALIGN_PARAGRAPH.CENTER
+            # "강 의 확 인 서"를 중앙 정렬하고 글씨 크기를 15로 변경
+            title_paragraph = doc.add_paragraph(title_text)
+            title_paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            run = title_paragraph.runs[0]
+            run.font.size = Pt(20)
+            run.font.name = '나눔고딕'
+            run._element.rPr.rFonts.set(qn('w:eastAsia'), '나눔고딕')
+            
 
+
+            doc.add_paragraph().alignment = WD_ALIGN_PARAGRAPH.CENTER  # 빈 줄 추가
+            doc.add_paragraph(f'1. 사 업 명: {LECTURE_NAME}')
+            doc.add_paragraph('2. 해설일시 및 대상')
+
+            # 시작시각을 기준으로 정렬
+            sorted_teacher_data = sorted(
+                teacher_data,
+                key=lambda x: (x[0], x[2])
+            )
+
+            # 표 스타일 적용
+
+            table = doc.add_table(rows=1, cols=4)
+            table.style = doc.styles['Table Grid']
+            table.autofit = False
+
+            table.columns[0].width = Cm(1) 
+
+            # 첫 번째 열에 대한 헤더 추가
+            cell = table.cell(0, 0)
+            cell.text = "순번"
+            cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+
+            for col_num, header_text in enumerate(['해설일시', '해설일시', '해설대상']):
+                cell = table.cell(0, col_num + 1)
+                cell.text = header_text
+                b = table.cell(0,1)
+                c = table.cell(0,2)
+                b.merge(c)
+
+                cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            
+            # 순차 번호를 초기화
+            sequence_number = 1
+
+
+            for i, data in enumerate(sorted_teacher_data, start=1):
+                row_cells = table.add_row().cells
+
+                # 첫 번째 열(순번)에 값을 설정
+                row_cells[0].text = str(sequence_number)
+                sequence_number += 1
+
+                # 다른 열에 값을 설정
+                row_cells[1].text = f'{data[0]}({data[1]})'
+                row_cells[2].text = f'{data[2].strftime("%H:%M")} ~ {data[3].strftime("%H:%M")}'
+                row_cells[3].text = f'{data[4]}({data[5]})'
+            
+            for row in table.rows:
+                for cell in row.cells:
+                    for paragraph in cell.paragraphs:
+                        for run in paragraph.runs:
+                            run.font.size = Pt(10)
+                            run.font.name = '나눔고딕'
+                            run._element.rPr.rFonts.set(qn('w:eastAsia'), '나눔고딕')
+
+
+            
+            doc.add_paragraph().alignment = WD_ALIGN_PARAGRAPH.CENTER  # 빈 줄 추가
+
+
+
+            doc.add_paragraph(f'3. 해 설 사 : {teacher_name}')    
+            doc.add_paragraph(f'    ○ 소속및직위 : {PERSONAL_DATA[teacher_name][0]}')
+            doc.add_paragraph(f'    ○ 생년월일 : {PERSONAL_DATA[teacher_name][1]}')
+            doc.add_paragraph(f'    ○ 주    소 : {PERSONAL_DATA[teacher_name][2]}')
+            doc.add_paragraph(f'    ○ 연 락 처 : {PERSONAL_DATA[teacher_name][3]}')
+            doc.add_paragraph(f'    ○ 계좌번호 : {PERSONAL_DATA[teacher_name][4]} {PERSONAL_DATA[teacher_name][5]}')
+
+            doc.add_paragraph().alignment = WD_ALIGN_PARAGRAPH.CENTER  # 빈 줄 추가
+            doc.add_paragraph(f'{YEAR}. {MONTH}. {DAY}. ').alignment = WD_ALIGN_PARAGRAPH.CENTER
+            doc.add_paragraph().alignment = WD_ALIGN_PARAGRAPH.CENTER  # 빈 줄 추가
+
+            blank_name = '  '.join(teacher_name)
+            doc.add_paragraph(f'({TYPE})    {blank_name}   (서 명)').alignment = WD_ALIGN_PARAGRAPH.CENTER
 
         # 표 스타일 적용
-        for row in table.rows:
-            for cell in row.cells:
-                for paragraph in cell.paragraphs:
-                    for run in paragraph.runs:
-                        run.font.size = Pt(10)
-                        run._element.rPr.rFonts.set(qn('w:eastAsia'), '나눔고딕') 
-                        paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER                  
-    # 문서 저장
+            for row in table.rows:
+                for cell in row.cells:
+                    for paragraph in cell.paragraphs:
+                        for run in paragraph.runs:
+                            run.font.size = Pt(10)
+                            run._element.rPr.rFonts.set(qn('w:eastAsia'), '나눔고딕') 
+                            paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER                  
+# 문서 저장
     doc.save(save_data)
 
     try:
@@ -304,7 +431,7 @@ lecture_name_entry = ttk.Entry(root, width=35)
 lecture_sheetname_label = ttk.Label(root, text="엑셀 강의명(예: 섬강):")
 lecture_sheetname_entry = ttk.Entry(root, width=35)
 
-topic_label = ttk.Label(root, text="강의주제(물절약):")
+topic_label = ttk.Label(root, text="강의주제(해설은 - 표시):")
 topic_entry = ttk.Entry(root, width=35)
 
 raw_data_entry = ttk.Entry(root, width=35)
