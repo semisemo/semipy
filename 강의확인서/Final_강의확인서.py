@@ -150,6 +150,7 @@ def generate_confirmation_doc():
     wb.close()
 
 
+    
     if TYPE == "강  사":
         if LECTURE_SHEETNAME not in PROGRAM_DATA:
             messagebox.showwarning("경고", f"엑셀 강의명을 다시 확인하세요")
@@ -159,10 +160,11 @@ def generate_confirmation_doc():
         style = doc.styles['Normal']
         style.font.name = '나눔고딕'
         style._element.rPr.rFonts.set(qn('w:eastAsia'), '나눔고딕')
-
         first_teacher = True
 
-        for teacher_name, teacher_data in PROGRAM_DATA[LECTURE_SHEETNAME].items():
+        for teacher_name in sorted(PROGRAM_DATA[LECTURE_SHEETNAME]):
+            teacher_data = PROGRAM_DATA[LECTURE_SHEETNAME][teacher_name]
+
             if teacher_name not in PERSONAL_DATA:
                 # 해당 강사의 인적사항이 없을 때 메시지 박스를 띄우고 GUI를 닫음
                 messagebox.showwarning("경고", f"해당 강사({teacher_name})의 인적사항이 없습니다.")
@@ -278,8 +280,10 @@ def generate_confirmation_doc():
         style._element.rPr.rFonts.set(qn('w:eastAsia'), '나눔고딕')
 
         first_teacher = True
+        
+        for teacher_name in sorted(PROGRAM_DATA[LECTURE_SHEETNAME]):
+            teacher_data = PROGRAM_DATA[LECTURE_SHEETNAME][teacher_name]
 
-        for teacher_name, teacher_data in PROGRAM_DATA[LECTURE_SHEETNAME].items():
             if teacher_name not in PERSONAL_DATA:
                 # 해당 강사의 인적사항이 없을 때 메시지 박스를 띄우고 GUI를 닫음
                 messagebox.showwarning("경고", f"해당 강사({teacher_name})의 인적사항이 없습니다.")
