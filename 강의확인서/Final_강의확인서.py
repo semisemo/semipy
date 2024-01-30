@@ -8,7 +8,6 @@ from datetime import datetime
 from docx import Document
 from docx.shared import Pt, Cm
 from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.shared import Pt
 from docx.oxml.ns import qn
 import os 
 
@@ -355,7 +354,10 @@ def generate_confirmation_doc():
                 # 다른 열에 값을 설정
                 row_cells[1].text = f'{data[0]}({data[1]})'
                 row_cells[2].text = f'{data[2].strftime("%H:%M")} ~ {data[3].strftime("%H:%M")}'
-                row_cells[3].text = f'{data[4]}({data[5]})'
+                if data[4] == "개인":
+                    row_cells[3].text = {data[4]}
+                else:
+                    row_cells[3].text = f'{data[4]}({data[5]})'
             
             for row in table.rows:
                 for cell in row.cells:
