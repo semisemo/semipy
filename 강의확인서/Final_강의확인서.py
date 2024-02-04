@@ -80,6 +80,7 @@ def generate_confirmation_doc():
     for row in lec_raw_sheet.iter_rows(min_row=first_row_number, max_row=last_row_number):
         date = row[1].value
 
+
         if date is not None:
             if date.month != MONTH:
                 continue
