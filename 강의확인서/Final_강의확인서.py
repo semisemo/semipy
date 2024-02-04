@@ -324,7 +324,6 @@ def generate_confirmation_doc():
             table.style = doc.styles['Table Grid']
             table.autofit = False
 
-            table.columns[0].width = Cm(1) 
 
             # 첫 번째 열에 대한 헤더 추가
             cell = table.cell(0, 0)
@@ -368,6 +367,9 @@ def generate_confirmation_doc():
                             run.font.name = '나눔고딕'
                             run._element.rPr.rFonts.set(qn('w:eastAsia'), '나눔고딕')
 
+            # set first column width to 1cm
+            for cell in table.columns[0].cells:
+                cell.width = Cm(1)
 
             
             doc.add_paragraph().alignment = WD_ALIGN_PARAGRAPH.CENTER  # 빈 줄 추가
