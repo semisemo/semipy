@@ -203,7 +203,7 @@ def generate_confirmation_doc():
 
             table = doc.add_table(rows=1, cols=5)
             table.style = doc.styles['Table Grid']
-            table.autofit = False
+            table.autofit = True
             
             # 첫 번째 열에 대한 헤더 추가
             cell = table.cell(0, 0)
@@ -322,7 +322,7 @@ def generate_confirmation_doc():
 
             table = doc.add_table(rows=1, cols=4)
             table.style = doc.styles['Table Grid']
-            table.autofit = False
+            table.autofit = True
 
 
             # 첫 번째 열에 대한 헤더 추가
@@ -369,8 +369,9 @@ def generate_confirmation_doc():
 
             # set first column width to 1cm
             for cell in table.columns[0].cells:
-                cell.width = Cm(1)
-
+                cell.width = Cm(1.2)
+            for cell in table.columns[4].cells:
+                cell.width = Cm(6)
             
             doc.add_paragraph().alignment = WD_ALIGN_PARAGRAPH.CENTER  # 빈 줄 추가
 
